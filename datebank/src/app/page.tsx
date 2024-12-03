@@ -17,6 +17,7 @@ import { Place } from '@prisma/client'
 import PlaceCard from '@/components/places/PlaceCard'
 import PlaceForm from '@/components/places/PlaceForm'
 import { useSession } from 'next-auth/react'
+import Layout from '@/components/Layout'
 
 export default function Home() {
   const [places, setPlaces] = useState<Place[]>([])
@@ -56,6 +57,7 @@ export default function Home() {
     }
     fetchPlaces()
     setSelectedPlace(undefined)
+    onClose()
   }
 
   const handleDelete = async (id: string) => {
@@ -63,74 +65,74 @@ export default function Home() {
     fetchPlaces()
   }
 
-  if (!session) {
-    return (
-      <VStack
-        spacing={8}
-        justify="center"
-        align="center"
-        minH="60vh"
-        bgGradient={bgGradient}
-        p={8}
-        borderRadius="lg"
-      >
-        <Heading>DateBankへようこそ</Heading>
-        <Text textAlign="center">
-          お気に入りの場所を保存して、素敵なデートプランを立てましょう。
-        </Text>
-        <Button
-          onClick={() => signIn('google')}
-          size="lg"
-          colorScheme="blue"
-          leftIcon={<FaGoogle />}
-        >
-          Googleでログイン
-        </Button>
-      </VStack>
-    )
-  }
-
   return (
-    <VStack spacing={8}>
-      <Button
-        leftIcon={<FiPlus />}
-        colorScheme="blue"
-        onClick={() => {
-          setSelectedPlace(undefined)
-          onOpen()
-        }}
-      >
-        新しい場所を追加
-      </Button>
-
-      <Grid
-        templateColumns={{
-          base: '1fr',
-          md: 'repeat(2, 1fr)',
-          lg: 'repeat(3, 1fr)',
-        }}
-        gap={6}
-        width="full"
-      >
-        {places.map((place) => (
-          <PlaceCard
-            key={place.id}
-            place={place}
-            onEdit={(place) => {
-              setSelectedPlace(place)
+    <Layout>
+      {!session ? (
+        <VStack
+          spacing={8}
+          justify="center"
+          align="center"
+          minH="60vh"
+          bgGradient={bgGradient}
+          p={8}
+          borderRadius="lg"
+        >
+          <Heading>カップルプランへようこそ</Heading>
+          <Text textAlign="center">
+            お気に入りの場所を保存して、素敵なデートプランを立てましょう。
+          </Text>
+          <Button
+            onClick={() => signIn('google')}
+            size="lg"
+            colorScheme="blue"
+            leftIcon={<FaGoogle />}
+          >
+            Googleでログイン
+          </Button>
+        </VStack>
+      ) : (
+        <VStack spacing={8} p={8}>
+          <Button
+            leftIcon={<FiPlus />}
+            colorScheme="blue"
+            onClick={() => {
+              setSelectedPlace(undefined)
               onOpen()
             }}
-            onDelete={handleDelete}
-          />
-        ))}
-      </Grid>
+          >
+            新しい場所を追加
+          </Button>
 
-      <PlaceForm
-        isOpen={isOpen}
-        onClose={onClose}
-        onSubmit={handleSubmit}
-        initialData={selectedPlace}
-      />
-    </VStack>
+          <Grid
+            templateColumns={{
+              base: '1fr',
+              md: 'repeat(2, 1fr)',
+              lg: 'repeat(3, 1fr)',
+            }}
+            gap={6}
+            width="full"
+          >
+            {places.map((place) => (
+              <PlaceCard
+                key={place.id}
+                place={place}
+                onEdit={(place) => {
+                  setSelectedPlace(place)
+                  onOpen()
+                }}
+                onDelete={handleDelete}
+              />
+            ))}
+          </Grid>
+
+          <PlaceForm
+            isOpen={isOpen}
+            onClose={onClose}
+            onSubmit={handleSubmit}
+            initialData={selectedPlace}
+          />
+        </VStack>
+      )}
+    </Layout>
   )
 }

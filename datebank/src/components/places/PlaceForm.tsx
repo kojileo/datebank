@@ -12,12 +12,6 @@ import {
   Button,
   VStack,
   useToast,
-  Select,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
   FormErrorMessage,
   InputGroup,
   InputLeftElement,
@@ -26,7 +20,7 @@ import {
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import { Place } from '@prisma/client'
-import { FiMapPin, FiStar } from 'react-icons/fi'
+import { FiLink, FiCalendar } from 'react-icons/fi'
 
 interface PlaceFormProps {
   isOpen: boolean
@@ -35,15 +29,12 @@ interface PlaceFormProps {
   initialData?: Place
 }
 
-const CATEGORIES = [
-  'レストラン',
-  'カフェ',
-  '公園',
-  '映画館',
-  'ショッピング',
-  '美術館',
-  'その他'
-]
+type FormInputs = {
+  name: string
+  description: string | null
+  url: string | null
+  visitDate: string | null
+}
 
 export default function PlaceForm({
   isOpen,
@@ -56,18 +47,25 @@ export default function PlaceForm({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset
-  } = useForm({
-    defaultValues: initialData || {
+  } = useForm<FormInputs>({
+    defaultValues: initialData ? {
+      ...initialData,
+      visitDate: initialData.visitDate ? new Date(initialData.visitDate).toISOString().split('T')[0] : ''
+    } : {
       name: '',
       description: '',
-      address: ''
+      url: '',
+      visitDate: ''
     }
   })
   const toast = useToast()
 
-  const onFormSubmit = async (data: Partial<Place>) => {
+  const onFormSubmit = async (data: FormInputs) => {
     try {
-      await onSubmit(data)
+      await onSubmit({
+        ...data,
+        visitDate: data.visitDate ? new Date(data.visitDate) : null
+      })
       reset()
       onClose()
       toast({
@@ -128,17 +126,46 @@ export default function PlaceForm({
                 />
               </FormControl>
 
-              <FormControl>
-                <FormLabel>住所</FormLabel>
+              <FormControl isRequired isInvalid={!!errors.url}>
+                <FormLabel>URL</FormLabel>
                 <InputGroup>
                   <InputLeftElement pointerEvents="none">
-                    <FiMapPin color="gray.300" />
+                    <FiLink color="gray.300" />
                   </InputLeftElement>
                   <Input
-                    {...register('address')}
-                    placeholder="場所の住所"
+                    {...register('url', {
+                      required: 'URLは必須です',
+                      pattern: {
+                        value: /^https?:\/\/.+/,
+                        message: '有効なURLを入力してください'
+                      }
+                    })}
+                    placeholder="https://example.com"
+                    type="url"
                   />
                 </InputGroup>
+                <FormErrorMessage>
+                  {errors.url && errors.url.message}
+                </FormErrorMessage>
+              </FormControl>
+
+              <FormControl isRequired isInvalid={!!errors.visitDate}>
+                <FormLabel>訪問予定日</FormLabel>
+                <InputGroup>
+                  <InputLeftElement pointerEvents="none">
+                    <FiCalendar color="gray.300" />
+                  </InputLeftElement>
+                  <Input
+                    {...register('visitDate', {
+                      required: '訪問予定日は必須です'
+                    })}
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </InputGroup>
+                <FormErrorMessage>
+                  {errors.visitDate && errors.visitDate.message}
+                </FormErrorMessage>
               </FormControl>
 
               <Divider />

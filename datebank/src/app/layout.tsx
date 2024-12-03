@@ -2,7 +2,7 @@ import { Providers } from './providers'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'DateBank',
+  title: 'カップルプラン',
   description: 'デートスポットを管理するアプリ',
 }
 
@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ja">
-      <body>
+    <html lang="ja" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>

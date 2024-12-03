@@ -17,8 +17,8 @@ import {
     AlertDialogOverlay,
     Button
   } from '@chakra-ui/react'
-  import { FiEdit2, FiTrash2, FiMapPin, FiInfo } from 'react-icons/fi'
-  import { Place } from '@prisma/client'
+  import { FiEdit2, FiTrash2, FiMapPin, FiInfo, FiLink, FiCalendar } from 'react-icons/fi'
+  import type { Place } from '@prisma/client'
   import { useRef } from 'react'
   
   interface PlaceCardProps {
@@ -97,14 +97,30 @@ import {
               </HStack>
             )}
   
-            {/* カテゴリー表示を一時的に削除 */}
-            {/* <HStack spacing={2}>
-              {place.category && (
-                <Badge colorScheme="blue" variant="subtle">
-                  {place.category}
-                </Badge>
-              )}
-            </HStack> */}
+            {place.url && (
+              <HStack spacing={2}>
+                <FiLink />
+                <Text 
+                  fontSize="sm" 
+                  color={useColorModeValue('blue.600', 'blue.400')}
+                  as="a"
+                  href={place.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ウェブサイトを開く
+                </Text>
+              </HStack>
+            )}
+
+            {place.visitDate && (
+              <HStack spacing={2}>
+                <FiCalendar />
+                <Text fontSize="sm">
+                  訪問予定日: {new Date(place.visitDate).toLocaleDateString('ja-JP')}
+                </Text>
+              </HStack>
+            )}
           </Stack>
         </Box>
   

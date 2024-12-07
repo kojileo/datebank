@@ -1,13 +1,7 @@
 'use client'
 
 import {
-  Box,
   SimpleGrid,
-  Card,
-  CardHeader,
-  CardBody,
-  Heading,
-  Text,
   Skeleton,
   useToast
 } from '@chakra-ui/react'
@@ -38,7 +32,7 @@ export default function PlaceList() {
         
         const data = await response.json()
         setPlaces(data)
-      } catch (error) {
+      } catch (_) {
         toast({
           title: 'エラー',
           description: '場所の一覧を取得できませんでした',

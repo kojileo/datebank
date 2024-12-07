@@ -6,7 +6,6 @@ import {
     IconButton,
     HStack,
     useColorModeValue,
-    Badge,
     Divider,
     useDisclosure,
     AlertDialog,
@@ -28,15 +27,17 @@ import {
   }
   
   export default function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
-    const bg = useColorModeValue('white', 'gray.800')
+    const bgColor = useColorModeValue('white', 'gray.800')
+    const textColor = useColorModeValue('gray.600', 'gray.400')
     const borderColor = useColorModeValue('gray.200', 'gray.700')
+    const linkColor = useColorModeValue('blue.600', 'blue.400')
     const { isOpen, onOpen, onClose } = useDisclosure()
     const cancelRef = useRef<HTMLButtonElement>(null)
   
     return (
       <>
         <Box
-          bg={bg}
+          bg={bgColor}
           border="1px"
           borderColor={borderColor}
           shadow="sm"
@@ -73,7 +74,7 @@ import {
   
             {place.description && (
               <Text 
-                color={useColorModeValue('gray.600', 'gray.400')}
+                color={textColor}
                 noOfLines={3}
                 fontSize="sm"
               >
@@ -89,7 +90,7 @@ import {
                 <FiMapPin />
                 <Text 
                   fontSize="sm" 
-                  color={useColorModeValue('gray.600', 'gray.400')}
+                  color={textColor}
                   noOfLines={1}
                 >
                   {place.address}
@@ -102,7 +103,7 @@ import {
                 <FiLink />
                 <Text 
                   fontSize="sm" 
-                  color={useColorModeValue('blue.600', 'blue.400')}
+                  color={linkColor}
                   as="a"
                   href={place.url}
                   target="_blank"

@@ -19,7 +19,7 @@ import {
   Tooltip,
   useToast
 } from '@chakra-ui/react'
-import { FiSun, FiMoon, FiUser, FiLogOut, FiLogIn, FiSettings } from 'react-icons/fi'
+import { FiSun, FiMoon, FiLogOut, FiLogIn, FiSettings } from 'react-icons/fi'
 import { signIn, signOut, useSession } from 'next-auth/react'
 import { useState } from 'react'
 
@@ -34,7 +34,7 @@ export default function Navbar() {
   const handleSignIn = async () => {
     try {
       await signIn('google', { callbackUrl: '/' })
-    } catch (error) {
+    } catch (__) {
       toast({
         title: 'ログインに失敗しました',
         status: 'error',
@@ -56,7 +56,7 @@ export default function Navbar() {
         isClosable: true,
         position: 'top'
       })
-    } catch (error) {
+    } catch (__) {
       toast({
         title: 'ログアウトに失敗しました',
         status: 'error',

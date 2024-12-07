@@ -23,7 +23,7 @@ export default function Home() {
   const [places, setPlaces] = useState<Place[]>([])
   const [selectedPlace, setSelectedPlace] = useState<Place | undefined>()
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { data: session, status } = useSession({
+  const { data: session } = useSession({
     required: false,
     onUnauthenticated() {
       // 未認証時の処理

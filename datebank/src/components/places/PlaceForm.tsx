@@ -15,8 +15,7 @@ import {
   FormErrorMessage,
   InputGroup,
   InputLeftElement,
-  Divider,
-  Text
+  Divider
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import { Place } from '@prisma/client'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { signIn } from 'next-auth/react'
 import { FiPlus } from 'react-icons/fi'
 import { FaGoogle } from 'react-icons/fa'
@@ -23,23 +23,29 @@ export default function Home() {
   const [places, setPlaces] = useState<Place[]>([])
   const [selectedPlace, setSelectedPlace] = useState<Place | undefined>()
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession({
+    required: false,
+    onUnauthenticated() {
+      // 未認証時の処理
+    },
+  })
   const bgGradient = useColorModeValue(
     'linear(to-r, blue.100, purple.100)',
     'linear(to-r, blue.900, purple.900)'
   )
 
-  useEffect(() => {
-    if (session) {
-      fetchPlaces()
-    }
-  }, [session])
-
-  const fetchPlaces = async () => {
+  const fetchPlaces = useCallback(async () => {
+    if (!session?.user?.id) return
     const response = await fetch('/api/places')
     const data = await response.json()
     setPlaces(data)
-  }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchPlaces()
+    }
+  }, [session, fetchPlaces])
 
   const handleSubmit = async (data: Partial<Place>) => {
     if (selectedPlace) {

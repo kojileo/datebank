@@ -2,6 +2,9 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(
   request: Request,
@@ -14,7 +17,9 @@ export async function POST(
   }
 
   try {
-    // 招待する側のユーザーがテナントに所属しているか確認
+    const { email } = await request.json()
+
+    // テナントの存在確認と権限チェック
     const tenant = await prisma.tenant.findFirst({
       where: {
         id: params.id,
@@ -23,38 +28,34 @@ export async function POST(
             id: session.user.id
           }
         }
+      },
+      include: {
+        users: true
       }
     })
 
     if (!tenant) {
-      return new NextResponse('Tenant not found or unauthorized', { status: 404 })
+      return new NextResponse('テナントが見つからないか、権限がありません', { status: 404 })
     }
 
-    const { email } = await request.json()
+    // 既に招待されているかチェック
+    const existingUser = tenant.users.find(user => user.email === email)
+    if (existingUser) {
+      return new NextResponse('このユーザーは既にメンバーです', { status: 400 })
+    }
 
-    // 招待されるユーザーの存在確認
-    const invitedUser = await prisma.user.findUnique({
+    // 招待されるユーザーの検索または作成
+    let invitedUser = await prisma.user.findUnique({
       where: { email }
     })
 
     if (!invitedUser) {
-      return new NextResponse('Invited user not found', { status: 404 })
-    }
-
-    // 既に招待されているか確認
-    const existingMembership = await prisma.tenant.findFirst({
-      where: {
-        id: params.id,
-        users: {
-          some: {
-            id: invitedUser.id
-          }
+      invitedUser = await prisma.user.create({
+        data: {
+          email,
+          emailVerified: null
         }
-      }
-    })
-
-    if (existingMembership) {
-      return new NextResponse('User is already a member', { status: 400 })
+      })
     }
 
     // テナントにユーザーを追加
@@ -67,7 +68,30 @@ export async function POST(
       }
     })
 
-    return new NextResponse(null, { status: 200 })
+    // 招待メールの送信
+    await resend.emails.send({
+      from: 'DateBank <noreply@resend.dev>',
+      to: email,
+      subject: `${session.user.name || 'パートナー'}からDateBankに招待されました`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #2B6CB0;">DateBankへようこそ！</h1>
+          <p>${session.user.name || 'パートナー'}があなたを招待しました。</p>
+          <p>以下のリンクからログインして、共有スペースにアクセスできます：</p>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/login?email=${email}" 
+             style="display: inline-block; background-color: #2B6CB0; color: white; 
+                    padding: 12px 24px; text-decoration: none; border-radius: 6px; 
+                    margin: 16px 0;">
+            DateBankにログインする
+          </a>
+          <p style="color: #666; font-size: 14px; margin-top: 24px;">
+            ※このメールに心当たりがない場合は、無視していただいて構いません。
+          </p>
+        </div>
+      `
+    })
+
+    return NextResponse.json({ message: '招待メールを送信しました' })
   } catch (error) {
     console.error('Invite error:', error)
     return new NextResponse('Internal Error', { status: 500 })

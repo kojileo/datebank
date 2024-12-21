@@ -16,7 +16,9 @@ import {
   Alert,
   AlertIcon,
   AlertTitle,
-  AlertDescription
+  AlertDescription,
+  Spinner,
+  Center
 } from '@chakra-ui/react'
 import { Place } from '@prisma/client'
 import PlaceCard from '@/components/places/PlaceCard'
@@ -24,13 +26,16 @@ import PlaceForm from '@/components/places/PlaceForm'
 import { useSession } from 'next-auth/react'
 import Layout from '@/components/Layout'
 import TenantSelector from '@/components/tenants/TenantSelector'
+import { useToast } from '@chakra-ui/react'
 
 export default function Home() {
   const [places, setPlaces] = useState<Place[]>([])
   const [selectedPlace, setSelectedPlace] = useState<Place | undefined>()
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+  const toast = useToast()
   const bgGradient = useColorModeValue(
     'linear(to-r, blue.100, purple.100)',
     'linear(to-r, blue.900, purple.900)'
@@ -38,21 +43,24 @@ export default function Home() {
 
   const fetchPlaces = useCallback(async () => {
     if (!session?.user?.id || !selectedTenantId) return
+    setIsLoading(true)
     try {
       const response = await fetch(`/api/places?tenantId=${selectedTenantId}`)
       if (!response.ok) throw new Error('場所の取得に失敗しました')
       const data = await response.json()
-      setPlaces(data.map((place: Place) => ({
-        ...place,
-        createdBy: {
-          name: session.user?.name || null,
-          email: session.user?.email || null
-        }
-      })))
+      setPlaces(data)
     } catch (error) {
-      console.error('Places fetch error:', error)
+      toast({
+        title: 'エラーが発生しました',
+        description: error instanceof Error ? error.message : '予期せぬエラーが発生しました',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsLoading(false)
     }
-  }, [session?.user?.id, selectedTenantId, session?.user?.name, session?.user?.email])
+  }, [session?.user?.id, selectedTenantId, toast])
 
   useEffect(() => {
     if (session?.user?.id && selectedTenantId) {
@@ -64,34 +72,71 @@ export default function Home() {
     if (!selectedTenantId) return
 
     try {
-      if (selectedPlace) {
-        await fetch(`/api/places/${selectedPlace.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, tenantId: selectedTenantId }),
-        })
-      } else {
-        await fetch('/api/places', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, tenantId: selectedTenantId }),
-        })
-      }
+      const endpoint = selectedPlace 
+        ? `/api/places/${selectedPlace.id}`
+        : '/api/places'
+      const method = selectedPlace ? 'PUT' : 'POST'
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, tenantId: selectedTenantId }),
+      })
+
+      if (!response.ok) throw new Error('保存に失敗しました')
+
       fetchPlaces()
       setSelectedPlace(undefined)
       onClose()
+      
+      toast({
+        title: `場所を${selectedPlace ? '更新' : '追加'}しました`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
     } catch (error) {
-      console.error('Place save error:', error)
+      toast({
+        title: 'エラーが発生しました',
+        description: error instanceof Error ? error.message : '予期せぬエラーが発生しました',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
   }
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/places/${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/places/${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('削除に失敗しました')
+      
       fetchPlaces()
+      toast({
+        title: '場所を削除しました',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
     } catch (error) {
-      console.error('Place delete error:', error)
+      toast({
+        title: 'エラーが発生しました',
+        description: error instanceof Error ? error.message : '予期せぬエラーが発生しました',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
+  }
+
+  if (status === 'loading') {
+    return (
+      <Layout>
+        <Center minH="60vh">
+          <Spinner size="xl" />
+        </Center>
+      </Layout>
+    )
   }
 
   if (!session) {
@@ -126,7 +171,7 @@ export default function Home() {
   return (
     <Layout>
       <VStack spacing={8} p={8}>
-        <Box w="full" maxW="md">
+        <Box w="full" maxW="2xl">
           <TenantSelector
             selectedTenantId={selectedTenantId}
             onTenantChange={setSelectedTenantId}
@@ -146,13 +191,19 @@ export default function Home() {
               新しい場所を追加
             </Button>
 
-            {places.length === 0 ? (
+            {isLoading ? (
+              <Center py={8}>
+                <Spinner size="lg" />
+              </Center>
+            ) : places.length === 0 ? (
               <Alert status="info" borderRadius="md">
                 <AlertIcon />
-                <AlertTitle>場所が登録されていません</AlertTitle>
-                <AlertDescription>
-                  「新しい場所を追加」ボタンから、お気に入りの場所を登録してみましょう。
-                </AlertDescription>
+                <Box>
+                  <AlertTitle>場所が登録されていません</AlertTitle>
+                  <AlertDescription>
+                    「新しい場所を追加」ボタンから、お気に入りの場所を登録してみましょう。
+                  </AlertDescription>
+                </Box>
               </Alert>
             ) : (
               <Grid
@@ -188,10 +239,12 @@ export default function Home() {
         ) : (
           <Alert status="info" borderRadius="md">
             <AlertIcon />
-            <AlertTitle>カップルを選択してください</AlertTitle>
-            <AlertDescription>
-              カップルを選択するか、新しく作成してください。
-            </AlertDescription>
+            <Box>
+              <AlertTitle>カップルを選択してください</AlertTitle>
+              <AlertDescription>
+                カップルを選択するか、新しく作成してください。
+              </AlertDescription>
+            </Box>
           </Alert>
         )}
       </VStack>

@@ -17,6 +17,7 @@ import {
   } from '@chakra-ui/react'
   import { useState, useEffect } from 'react'
   import TenantInviteForm from './TenantInviteForm'
+  import TenantDetails from './TenantDetails'
   
   interface Tenant {
     id: string
@@ -89,34 +90,33 @@ import {
     }
   
     return (
-      <>
-        <FormControl>
-          <FormLabel>カップルを選択</FormLabel>
-          <HStack spacing={4}>
-            <Select
-              value={selectedTenantId || ''}
-              onChange={(e) => onTenantChange(e.target.value)}
-            >
-              <option value="">選択してください</option>
-              {tenants.map((tenant) => (
-                <option key={tenant.id} value={tenant.id}>
-                  {tenant.name}
-                </option>
-              ))}
-            </Select>
-            <Button onClick={onOpen} colorScheme="blue">
-              新規作成
-            </Button>
-            {selectedTenantId && (
-              <Button onClick={inviteModal.onOpen} colorScheme="green">
-                招待
+        <VStack spacing={4} align="stretch">
+          <FormControl>
+            <FormLabel>カップルを選択</FormLabel>
+            <HStack>
+              <Select
+                value={selectedTenantId || ''}
+                onChange={(e) => onTenantChange(e.target.value)}
+              >
+                <option value="">選択してください</option>
+                {tenants.map((tenant) => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </option>
+                ))}
+              </Select>
+              <Button onClick={onOpen} colorScheme="blue">
+                新規作成
               </Button>
-            )}
-          </HStack>
-        </FormControl>
-  
-        {/* 新規作成モーダル */}
-        <Modal isOpen={isOpen} onClose={onClose}>
+            </HStack>
+          </FormControl>
+    
+          {selectedTenantId && (
+            <TenantDetails tenantId={selectedTenantId} />
+          )}
+    
+          {/* 新規作成モーダル */}
+          <Modal isOpen={isOpen} onClose={onClose}>
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>新しいカップルを作成</ModalHeader>
@@ -149,6 +149,6 @@ import {
             tenantId={selectedTenantId}
           />
         )}
-      </>
+      </VStack>
     )
   }

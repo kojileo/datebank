@@ -51,9 +51,11 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  places        Place[]
+  places        Place[]   @relation("PlaceToUser")
+  createdPlaces Place[]   @relation("PlaceCreatedBy")
   budget        Budget[]
   expenses      Expense[]
+  tenants       Tenant[]  @relation("TenantUsers")
 }
 
 model VerificationToken {
@@ -71,10 +73,17 @@ model Place {
   address     String?
   url         String?
   visitDate   DateTime?
-  userId      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation("PlaceToUser", fields: [userId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId    String
+  createdBy   User      @relation("PlaceCreatedBy", fields: [createdById], references: [id])
+  userId      String
+  createdById String
+
+  @@index([tenantId])
+  @@index([userId])
 }
 
 model Budget {
@@ -95,4 +104,15 @@ model Expense {
   budget      Budget    @relation(fields: [budgetId], references: [id])
   userId      String
   user        User      @relation(fields: [userId], references: [id])
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]   @relation("TenantUsers")
+  places    Place[]
+
+  @@map("tenant")
 }

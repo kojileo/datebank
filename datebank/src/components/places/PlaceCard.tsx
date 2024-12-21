@@ -1,164 +1,107 @@
 import {
-    Box,
-    Heading,
-    Text,
-    Stack,
-    IconButton,
-    HStack,
-    useColorModeValue,
-    Divider,
-    useDisclosure,
-    AlertDialog,
-    AlertDialogBody,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogContent,
-    AlertDialogOverlay,
-    Button
-  } from '@chakra-ui/react'
-  import { FiEdit2, FiTrash2, FiMapPin, FiInfo, FiLink, FiCalendar } from 'react-icons/fi'
-  import type { Place } from '@prisma/client'
-  import { useRef } from 'react'
-  
-  interface PlaceCardProps {
-    place: Place
-    onEdit: (place: Place) => void
-    onDelete: (id: string) => void
-  }
-  
-  export default function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
-    const bgColor = useColorModeValue('white', 'gray.800')
-    const textColor = useColorModeValue('gray.600', 'gray.400')
-    const borderColor = useColorModeValue('gray.200', 'gray.700')
-    const linkColor = useColorModeValue('blue.600', 'blue.400')
-    const { isOpen, onOpen, onClose } = useDisclosure()
-    const cancelRef = useRef<HTMLButtonElement>(null)
-  
-    return (
-      <>
-        <Box
-          bg={bgColor}
-          border="1px"
-          borderColor={borderColor}
-          shadow="sm"
-          rounded="lg"
-          p={6}
-          transition="all 0.2s"
-          _hover={{ shadow: 'md', transform: 'translateY(-2px)' }}
-          position="relative"
-        >
-          <Stack spacing={4}>
-            <HStack justify="space-between" align="start">
-              <Heading size="md" noOfLines={2}>
-                {place.name}
-              </Heading>
-              <HStack spacing={2}>
-                <IconButton
-                  aria-label="Edit place"
-                  icon={<FiEdit2 />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="blue"
-                  onClick={() => onEdit(place)}
-                />
-                <IconButton
-                  aria-label="Delete place"
-                  icon={<FiTrash2 />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="red"
-                  onClick={onOpen}
-                />
-              </HStack>
-            </HStack>
-  
-            {place.description && (
-              <Text 
-                color={textColor}
-                noOfLines={3}
-                fontSize="sm"
-              >
-                <FiInfo style={{ display: 'inline', marginRight: '8px' }} />
-                {place.description}
-              </Text>
-            )}
-  
-            <Divider />
-  
-            {place.address && (
-              <HStack spacing={2}>
-                <FiMapPin />
-                <Text 
-                  fontSize="sm" 
-                  color={textColor}
-                  noOfLines={1}
-                >
-                  {place.address}
-                </Text>
-              </HStack>
-            )}
-  
-            {place.url && (
-              <HStack spacing={2}>
-                <FiLink />
-                <Text 
-                  fontSize="sm" 
-                  color={linkColor}
-                  as="a"
-                  href={place.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ウェブサイトを開く
-                </Text>
-              </HStack>
-            )}
+  Box,
+  VStack,
+  Heading,
+  Text,
+  IconButton,
+  HStack,
+  Link,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  useColorModeValue,
+  Badge
+} from '@chakra-ui/react'
+import { FiMoreVertical, FiEdit2, FiTrash2, FiExternalLink } from 'react-icons/fi'
+import { Place } from '@prisma/client'
+import { format } from 'date-fns'
+import { ja } from 'date-fns/locale'
 
-            {place.visitDate && (
-              <HStack spacing={2}>
-                <FiCalendar />
-                <Text fontSize="sm">
-                  訪問予定日: {new Date(place.visitDate).toLocaleDateString('ja-JP')}
-                </Text>
-              </HStack>
-            )}
-          </Stack>
-        </Box>
-  
-        <AlertDialog
-          isOpen={isOpen}
-          leastDestructiveRef={cancelRef}
-          onClose={onClose}
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                場所を削除
-              </AlertDialogHeader>
-  
-              <AlertDialogBody>
-                「{place.name}」を削除してもよろしいですか？
-                この操作は取り消せません。
-              </AlertDialogBody>
-  
-              <AlertDialogFooter>
-                <Button ref={cancelRef} onClick={onClose}>
-                  キャンセル
-                </Button>
-                <Button
-                  colorScheme="red"
-                  onClick={() => {
-                    onDelete(place.id)
-                    onClose()
-                  }}
-                  ml={3}
-                >
-                  削除
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
-      </>
-    )
+interface PlaceCardProps {
+  place: Place & {
+    createdBy?: {
+      name: string | null
+      email: string | null
+    }
   }
+  onEdit: (place: Place) => void
+  onDelete: (id: string) => void
+}
+
+export default function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
+  const bgColor = useColorModeValue('white', 'gray.800')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+
+  return (
+    <Box
+      borderWidth="1px"
+      borderRadius="lg"
+      overflow="hidden"
+      bg={bgColor}
+      borderColor={borderColor}
+      p={4}
+      position="relative"
+    >
+      <VStack align="stretch" spacing={3}>
+        <HStack justify="space-between" align="flex-start">
+          <Heading size="md" noOfLines={2}>
+            {place.name}
+          </Heading>
+          <Menu>
+            <MenuButton
+              as={IconButton}
+              icon={<FiMoreVertical />}
+              variant="ghost"
+              size="sm"
+              aria-label="オプション"
+            />
+            <MenuList>
+              <MenuItem icon={<FiEdit2 />} onClick={() => onEdit(place)}>
+                編集
+              </MenuItem>
+              <MenuItem
+                icon={<FiTrash2 />}
+                onClick={() => onDelete(place.id)}
+                color="red.500"
+              >
+                削除
+              </MenuItem>
+            </MenuList>
+          </Menu>
+        </HStack>
+
+        {place.description && (
+          <Text fontSize="sm" color="gray.500" noOfLines={2}>
+            {place.description}
+          </Text>
+        )}
+
+        {place.address && (
+          <Text fontSize="sm" color="gray.500" noOfLines={1}>
+            {place.address}
+          </Text>
+        )}
+
+        {place.url && (
+          <Link href={place.url} isExternal color="blue.500" fontSize="sm">
+            <HStack spacing={1}>
+              <FiExternalLink />
+              <Text>ウェブサイトを開く</Text>
+            </HStack>
+          </Link>
+        )}
+
+        {place.visitDate && (
+          <Text fontSize="sm" color="gray.500">
+            訪問予定日: {format(new Date(place.visitDate), 'yyyy年MM月dd日', { locale: ja })}
+          </Text>
+        )}
+
+        <Text fontSize="xs" color="gray.500">
+          作成者: {place.createdBy?.name || place.createdBy?.email}
+        </Text>
+      </VStack>
+    </Box>
+  )
+}

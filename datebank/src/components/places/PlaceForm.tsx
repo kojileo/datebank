@@ -11,15 +11,10 @@ import {
   Textarea,
   Button,
   VStack,
-  useToast,
-  FormErrorMessage,
-  InputGroup,
-  InputLeftElement,
-  Divider
+  FormErrorMessage
 } from '@chakra-ui/react'
-import { useForm } from 'react-hook-form'
+import { useState } from 'react'
 import { Place } from '@prisma/client'
-import { FiLink, FiCalendar } from 'react-icons/fi'
 
 interface PlaceFormProps {
   isOpen: boolean
@@ -28,156 +23,105 @@ interface PlaceFormProps {
   initialData?: Place
 }
 
-type FormInputs = {
-  name: string
-  description: string | null
-  url: string | null
-  visitDate: string | null
-}
+export default function PlaceForm({ isOpen, onClose, onSubmit, initialData }: PlaceFormProps) {
+  const [name, setName] = useState(initialData?.name || '')
+  const [description, setDescription] = useState(initialData?.description || '')
+  const [address, setAddress] = useState(initialData?.address || '')
+  const [url, setUrl] = useState(initialData?.url || '')
+  const [visitDate, setVisitDate] = useState(
+    initialData?.visitDate ? new Date(initialData.visitDate).toISOString().split('T')[0] : ''
+  )
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-export default function PlaceForm({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData
-}: PlaceFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset
-  } = useForm<FormInputs>({
-    defaultValues: initialData ? {
-      ...initialData,
-      visitDate: initialData.visitDate ? new Date(initialData.visitDate).toISOString().split('T')[0] : ''
-    } : {
-      name: '',
-      description: '',
-      url: '',
-      visitDate: ''
-    }
-  })
-  const toast = useToast()
-
-  const onFormSubmit = async (data: FormInputs) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
     try {
       await onSubmit({
-        ...data,
-        visitDate: data.visitDate ? new Date(data.visitDate) : null
+        name,
+        description,
+        address,
+        url,
+        visitDate: visitDate ? new Date(visitDate) : null,
       })
-      reset()
-      onClose()
-      toast({
-        title: initialData ? '更新しました' : '登録しました',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-        position: 'top'
-      })
-    } catch (error) {
-      toast({
-        title: 'エラーが発生しました',
-        description: error instanceof Error ? error.message : '予期せぬエラーが発生しました',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-        position: 'top'
-      })
+      resetForm()
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
+  const resetForm = () => {
+    setName('')
+    setDescription('')
+    setAddress('')
+    setUrl('')
+    setVisitDate('')
+  }
+
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose}
-      size="xl"
-      motionPreset="slideInBottom"
-    >
-      <ModalOverlay backdropFilter="blur(2px)" />
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
       <ModalContent>
-        <ModalHeader>
-          {initialData ? '場所を編集' : '新しい場所を追加'}
-        </ModalHeader>
+        <ModalHeader>{initialData ? '場所を編集' : '新しい場所を追加'}</ModalHeader>
         <ModalCloseButton />
-        <ModalBody pb={6}>
-          <form onSubmit={handleSubmit(onFormSubmit)}>
-            <VStack spacing={4} align="stretch">
-              <FormControl isRequired isInvalid={!!errors.name}>
+        <ModalBody>
+          <form onSubmit={handleSubmit}>
+            <VStack spacing={4} pb={4}>
+              <FormControl isRequired isInvalid={!name}>
                 <FormLabel>名前</FormLabel>
                 <Input
-                  {...register('name', {
-                    required: '名前は必須です',
-                    minLength: { value: 2, message: '2文字以上入力してください' }
-                  })}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="場所の名前"
                 />
-                <FormErrorMessage>
-                  {errors.name && errors.name.message}
-                </FormErrorMessage>
+                {!name && <FormErrorMessage>名前は必須です</FormErrorMessage>}
               </FormControl>
 
               <FormControl>
                 <FormLabel>説明</FormLabel>
                 <Textarea
-                  {...register('description')}
-                  placeholder="この場所の説明や、おすすめポイントなど"
-                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="場所の説明"
                 />
               </FormControl>
 
-              <FormControl isRequired isInvalid={!!errors.url}>
+              <FormControl>
+                <FormLabel>住所</FormLabel>
+                <Input
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="住所"
+                />
+              </FormControl>
+
+              <FormControl>
                 <FormLabel>URL</FormLabel>
-                <InputGroup>
-                  <InputLeftElement pointerEvents="none">
-                    <FiLink color="gray.300" />
-                  </InputLeftElement>
-                  <Input
-                    {...register('url', {
-                      required: 'URLは必須です',
-                      pattern: {
-                        value: /^https?:\/\/.+/,
-                        message: '有効なURLを入力してください'
-                      }
-                    })}
-                    placeholder="https://example.com"
-                    type="url"
-                  />
-                </InputGroup>
-                <FormErrorMessage>
-                  {errors.url && errors.url.message}
-                </FormErrorMessage>
+                <Input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://..."
+                  type="url"
+                />
               </FormControl>
 
-              <FormControl isRequired isInvalid={!!errors.visitDate}>
+              <FormControl>
                 <FormLabel>訪問予定日</FormLabel>
-                <InputGroup>
-                  <InputLeftElement pointerEvents="none">
-                    <FiCalendar color="gray.300" />
-                  </InputLeftElement>
-                  <Input
-                    {...register('visitDate', {
-                      required: '訪問予定日は必須です'
-                    })}
-                    type="date"
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </InputGroup>
-                <FormErrorMessage>
-                  {errors.visitDate && errors.visitDate.message}
-                </FormErrorMessage>
+                <Input
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  type="date"
+                />
               </FormControl>
-
-              <Divider />
 
               <Button
                 type="submit"
                 colorScheme="blue"
                 width="full"
                 isLoading={isSubmitting}
-                loadingText="保存中..."
-                mt={4}
+                isDisabled={!name}
               >
-                {initialData ? '更新する' : '登録する'}
+                {initialData ? '更新' : '追加'}
               </Button>
             </VStack>
           </form>

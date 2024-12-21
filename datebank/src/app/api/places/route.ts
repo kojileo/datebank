@@ -12,11 +12,21 @@ export async function POST(request: Request) {
 
   try {
     const json = await request.json()
+    const { tenantId, ...placeData } = json
+
     const place = await prisma.place.create({
       data: {
-        ...json,
-        userId: session.user.id,
-      },
+        ...placeData,
+        user: {
+          connect: { id: session.user.id }
+        },
+        createdBy: {
+          connect: { id: session.user.id }
+        },
+        tenant: {
+          connect: { id: tenantId }
+        }
+      }
     })
 
     return NextResponse.json(place)
@@ -26,17 +36,32 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   
   if (!session?.user) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
+  const { searchParams } = new URL(request.url)
+  const tenantId = searchParams.get('tenantId')
+
+  if (!tenantId) {
+    return new NextResponse('Tenant ID is required', { status: 400 })
+  }
+
   try {
     const places = await prisma.place.findMany({
       where: {
-        userId: session.user.id
+        tenantId,
+        tenant: {
+          users: {
+            some: {
+              id: session.user.id
+            }
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
